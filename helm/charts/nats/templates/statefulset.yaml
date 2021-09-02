@@ -146,6 +146,12 @@ spec:
         secret:
           secretName: {{ $secretName }}
       {{- end }}
+      {{- with .Values.auth.resolver.tls }}
+      {{ $secretName := .secret.name }}
+      - name: {{ $secretName }}-resolver-volume
+        secret:
+          secretName: {{ $secretName }}
+      {{- end }}
       {{- if .Values.leafnodes.enabled }}
       #
       # Leafnode credential volumes
@@ -259,13 +265,14 @@ spec:
         {{- end }}
 
         command:
-         - "nats-server"
-         - "--config"
-         - "/etc/nats-config/nats.conf"
-        {{- if .Values.nats.profiling.enabled }}
-         - "--profile={{ .Values.nats.profiling.port }}"
-        {{- end }}
-
+         - /bin/sh
+         - -c         
+         - {{ with .Values.auth.resolver.tls -}}
+           {{- $secretName := .secret.name }}
+           cp /etc/nats-certs/resolver/{{ $secretName }}/{{ .ca }} /usr/local/share/ca-certificates 
+           && update-ca-certificates
+           && {{ end -}}
+           nats-server --config /etc/nats-config/nats.conf{{ if .Values.nats.profiling.enabled }} --profile={{ .Values.nats.profiling.port }}{{ end }}
         # Required to be able to define an environment variable
         # that refers to other environment variables.  This env var
         # is later used as part of the configuration file.
@@ -368,6 +375,12 @@ spec:
             mountPath: /etc/nats-certs/ws/{{ $secretName }}
           {{- end }}
 
+          {{- with .Values.auth.resolver.tls }}
+          {{ $secretName := .secret.name }}
+          - name: {{ $secretName }}-resolver-volume
+            mountPath: /etc/nats-certs/resolver/{{ $secretName }}
+          {{- end }}
+
           {{- if .Values.leafnodes.enabled }}
           #
           # Leafnode credential volumes
@@ -395,9 +408,9 @@ spec:
           initialDelaySeconds: 10
           timeoutSeconds: 5
 
-        # Gracefully stop NATS Server on pod deletion or image upgrade.
-        #
+        
         lifecycle:
+          # Gracefully stop NATS Server on pod deletion or image upgrade.
           preStop:
             exec:
               # Using the alpine based NATS image, we add an extra sleep that is

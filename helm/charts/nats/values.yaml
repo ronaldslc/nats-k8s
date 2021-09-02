@@ -424,6 +424,11 @@ auth:
     ##########################
     # type: URL
     # url: "http://nats-account-server:9090/jwt/v1/accounts/"
+    # 
+    # tls:
+    #   secret:
+    #     name: nats-accounts-server-tls
+    #   ca: "ca.crt"
 
 websocket:
   enabled: false
