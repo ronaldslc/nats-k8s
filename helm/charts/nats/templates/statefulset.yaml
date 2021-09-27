@@ -50,6 +50,12 @@ spec:
       affinity:
 {{- tpl (toYaml .) $ | nindent 8 }}
 {{- end }}
+{{- with .Values.nodeSelector }}
+      nodeSelector: {{ toYaml . | nindent 8 }}
+{{- end }}
+{{- with .Values.tolerations }}
+      tolerations: {{ toYaml . | nindent 8 }}
+{{- end }}
 {{- if .Values.topologySpreadConstraints }}
       topologySpreadConstraints:
       {{- range .Values.topologySpreadConstraints }}
@@ -71,8 +77,13 @@ spec:
       # Common volumes for the containers.
       volumes:
       - name: config-volume
+        {{ if .Values.nats.customConfigSecret }}
+        secret:
+          secretName: {{ .Values.nats.customConfigSecret.name }}
+        {{ else }}
         configMap:
           name: {{ include "nats.fullname" . }}-config
+        {{ end }}
 
       # Local volume shared with the reloader.
       - name: pid

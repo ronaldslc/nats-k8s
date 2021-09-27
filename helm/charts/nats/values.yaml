@@ -4,7 +4,7 @@
 #                             #
 ###############################
 nats:
-  image: nats:2.3.4-alpine
+  image: nats:2.5.0-alpine
   pullPolicy: IfNotPresent
 
   # Toggle profiling.
@@ -38,6 +38,11 @@ nats:
   # to a client that has no activity.
   pingInterval:
 
+  # selector matchLabels for the server and service.
+  # If left empty defaults are used.
+  # This is helpful if you are updating from Chart version <=7.4
+  selectorLabels: {}
+
   resources: {}
 
   # Server settings.
@@ -60,6 +65,16 @@ nats:
     logtime:
     connectErrorReports:
     reconnectErrorReports:
+
+  # customConfigSecret can be used to use an custom secret for the config
+  # of the NATS Server.
+  # NOTE: For this to work the name of the configuration has to be
+  # called `nats.conf`.
+  # 
+  # e.g. kubectl create secret generic custom-nats-conf --from-file nats.conf
+  # 
+  # customConfigSecret:
+  #  name:
 
   jetstream:
     enabled: false
@@ -155,6 +170,7 @@ mqtt:
   #   key: "tls.key"
 
 nameOverride: ""
+
 # An array of imagePullSecrets, and they have to be created manually in the same namespace
 # ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
 imagePullSecrets: []
@@ -191,11 +207,24 @@ topologySpreadConstraints: []
 podAnnotations: {}
 # key: "value"
 
-## Define a Pod Disruption Budget for the stateful set
-## ref: https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
-podDisruptionBudget: null
+# Define a Pod Disruption Budget for the stateful set
+# ref: https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
+podDisruptionBudget:
   # minAvailable: 1
   # maxUnavailable: 1
+
+# Node labels for pod assignment
+# Ref: https://kubernetes.io/docs/user-guide/node-selection/
+nodeSelector: {}
+
+# Node tolerations for server scheduling to nodes with taints
+# Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+#
+tolerations: []
+#  - key: "key"
+#    operator: "Equal|Exists"
+#    value: "value"
+#    effect: "NoSchedule|PreferNoSchedule|NoExecute(1.6 only)"
 
 # Annotations to add to the NATS StatefulSet
 statefulSetAnnotations: {}
@@ -249,6 +278,10 @@ gateway:
   enabled: false
   name: 'default'
 
+  # You can add an implicit advertise address instead of using from Node's IP
+  # could also be a fqdn address
+  #advertise: "nats.example.com"
+
   #############################
   #                           #
   #  List of remote gateways  #
@@ -282,7 +315,7 @@ bootconfig:
   image: natsio/nats-boot-config:0.5.4
   pullPolicy: IfNotPresent
   securityContext: {}
-
+  
 # NATS Box
 #
 # https://github.com/nats-io/nats-box
@@ -311,6 +344,19 @@ natsbox:
   # Affinity for nats box pod assignment
   # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
   affinity: {}
+
+  # Node labels for pod assignment
+  # Ref: https://kubernetes.io/docs/user-guide/node-selection/
+  nodeSelector: {}
+
+  # Node tolerations for server scheduling to nodes with taints
+  # Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  #
+  tolerations: []
+  #  - key: "key"
+  #    operator: "Equal|Exists"
+  #    value: "value"
+  #    effect: "NoSchedule|PreferNoSchedule|NoExecute(1.6 only)"
 
 # The NATS config reloader image to use.
 reloader:
@@ -433,6 +479,10 @@ auth:
 websocket:
   enabled: false
   port: 443
+  noTLS: true
+
+  sameOrigin: false
+  allowedOrigins: []
 
 appProtocol:
   enabled: false
