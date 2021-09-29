@@ -32,7 +32,7 @@ nats:
   serviceAccount: "nats-server"
 
   # The number of connect attempts against discovered routes.
-  connectRetries: 30
+  connectRetries: 120
 
   # How many seconds should pass before sending a PING
   # to a client that has no activity.
@@ -55,9 +55,12 @@ nats:
     writeDeadline:
     maxPending:
     maxPings:
-    lameDuckDuration:
 
-  terminationGracePeriodSeconds: 60
+    # NOTE: this should be at least the same as 'terminationGracePeriodSeconds'
+    lameDuckDuration: "120s"
+
+  # Default lame duck duration in the server is 2 minutes.
+  terminationGracePeriodSeconds: 120
 
   logging:
     debug:
@@ -229,6 +232,9 @@ tolerations: []
 # Annotations to add to the NATS StatefulSet
 statefulSetAnnotations: {}
 
+# Labels to add to the pods of the NATS StatefulSet
+statefulSetPodLabels: {}
+
 # Annotations to add to the NATS Service
 serviceAnnotations: {}
 
@@ -277,6 +283,10 @@ leafnodes:
 gateway:
   enabled: false
   name: 'default'
+  # authorization:
+  #   user: foo
+  #   password: pwd
+  #   timeout: 0.5
 
   # You can add an implicit advertise address instead of using from Node's IP
   # could also be a fqdn address
@@ -326,6 +336,10 @@ natsbox:
   pullPolicy: IfNotPresent
   securityContext: {}
 
+  # Labels to add to the natsbox deployment
+  # ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+  additionalLabels: {}
+
   # An array of imagePullSecrets, and they have to be created manually in the same namespace
   # ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
   imagePullSecrets: []
@@ -340,6 +354,11 @@ natsbox:
   # ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
   podAnnotations: {}
   #  key: "value"
+
+  # Labels to add to the box pods
+  # ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
+  podLabels: {}
+  # key: "value"
 
   # Affinity for nats box pod assignment
   # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
@@ -486,6 +505,51 @@ websocket:
 
 appProtocol:
   enabled: false
+
+# Network Policy configuration
+networkPolicy:
+  enabled: false
+  # Don't require client label for connections
+  # When set to false, only pods with the correct client label will have network access to the ports
+  # NATS is listening on. When true, NATS will accept connections from any source
+  # (with the correct destination port).
+  allowExternal: true
+  # Add extra ingress rules to the NetworkPolicy
+  # e.g:
+  # extraIngress:
+  #   - ports:
+  #       - port: 1234
+  #     from:
+  #       - podSelector:
+  #           - matchLabels:
+  #               - role: frontend
+  #       - podSelector:
+  #           - matchExpressions:
+  #               - key: role
+  #                 operator: In
+  #                 values:
+  #                   - frontend
+  extraIngress: []
+  # Add extra ingress rules to the NetworkPolicy
+  # e.g:
+  # extraEgress:
+  #   - ports:
+  #       - port: 1234
+  #     to:
+  #       - podSelector:
+  #           - matchLabels:
+  #               - role: frontend
+  #       - podSelector:
+  #           - matchExpressions:
+  #               - key: role
+  #                 operator: In
+  #                 values:
+  #                   - frontend
+  extraEgress: []
+  # Labels to match to allow traffic from other namespaces
+  ingressNSMatchLabels: {}
+  # Pod labels to match to allow traffic from other namespaces
+  ingressNSPodMatchLabels: {}
 
 # Cluster Domain configured on the kubelets
 # https://kubernetes.io/docs/concepts/services-networking/dns-pod-service/

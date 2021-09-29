@@ -58,7 +58,7 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 Return the proper NATS image name
 */}}
 {{- define "nats.clusterAdvertise" -}}
-{{- printf "$(POD_NAME).%s.$(POD_NAMESPACE).svc.%s." (include "nats.fullname" . ) $.Values.k8sClusterDomain }}
+{{- printf "$(POD_NAME).%s.$(POD_NAMESPACE).svc.%s" (include "nats.fullname" . ) $.Values.k8sClusterDomain }}
 {{- end }}
 
 {{/*
@@ -67,7 +67,7 @@ Return the NATS cluster routes.
 {{- define "nats.clusterRoutes" -}}
 {{- $name := (include "nats.fullname" . ) -}}
 {{- range $i, $e := until (.Values.cluster.replicas | int) -}}
-{{- printf "nats://%s-%d.%s.%s.svc.%s.:6222," $name $i $name $.Release.Namespace $.Values.k8sClusterDomain -}}
+{{- printf "nats://%s-%d.%s.%s.svc.%s:6222," $name $i $name $.Release.Namespace $.Values.k8sClusterDomain -}}
 {{- end -}}
 {{- end }}
 
@@ -100,3 +100,27 @@ tls {
 {{- end }}
 }
 {{- end }}
+
+{{/*
+Return the appropriate apiVersion for networkpolicy.
+*/}}
+{{- define "networkPolicy.apiVersion" -}}
+{{- if semverCompare ">=1.4-0, <1.7-0" .Capabilities.KubeVersion.GitVersion -}}
+{{- print "extensions/v1beta1" -}}
+{{- else -}}
+{{- print "networking.k8s.io/v1" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Renders a value that contains template.
+Usage:
+{{ include "tplvalues.render" ( dict "value" .Values.path.to.the.Value "context" $) }}
+*/}}
+{{- define "tplvalues.render" -}}
+  {{- if typeIs "string" .value }}
+    {{- tpl .value .context }}
+  {{- else }}
+    {{- tpl (.value | toYaml) .context }}
+  {{- end }}
+{{- end -}}

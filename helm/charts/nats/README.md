@@ -442,6 +442,48 @@ cluster:
   replicas: 3
 ```
 
+### Basic Authentication and JetStream
+
+```yaml
+nats:
+  image: nats:alpine
+
+  jetstream:
+    enabled: true
+
+    memStorage:
+      enabled: true
+      size: "2Gi"
+
+    fileStorage:
+      enabled: true
+      size: "8Gi"
+      storageDirectory: /data/
+      storageClassName: gp2
+
+cluster:
+  enabled: true
+  # Can set a custom cluster name
+  # name: "nats"
+  replicas: 3
+
+auth:
+  enabled: true
+
+  systemAccount: sys
+
+  basic:
+    accounts:
+      sys:
+        users:
+        - user: sys
+          pass: sys
+      js:
+        jetstream: true
+        users:
+        - user: foo
+```
+
 ## Misc
 
 ### NATS Box

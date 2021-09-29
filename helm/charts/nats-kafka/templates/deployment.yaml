@@ -4,6 +4,9 @@ metadata:
   name: {{ include "nats-kafka.fullname" . }}
   labels:
     {{- include "nats-kafka.labels" . | nindent 4 }}
+    {{- if .Values.natskafka.deploymentLabels }}
+    {{ toYaml .Values.natskafka.deploymentLabels | nindent 4 }}
+    {{- end }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -13,6 +16,9 @@ spec:
     metadata:
       labels:
         {{- include "nats-kafka.selectorLabels" . | nindent 8 }}
+        {{- if .Values.natskafka.podLabels }}
+        {{ toYaml .Values.natskafka.podLabels | nindent 8 }}
+        {{- end }}
     spec:
       containers:
         - name: {{ .Chart.Name }}
@@ -26,10 +32,21 @@ spec:
               mountPath: /etc/nats-kafka/tls
               readOnly: true
             {{ end }}
+            {{- if .Values.natskafka.additionalVolumeMounts }}
+              {{- toYaml .Values.deployment.additionalVolumeMounts | nindent 12 }}
+            {{- end }}
           command:
             - "nats-kafka"
             - "-c"
-            - "/etc/nats-kafka/nats-kafka.conf"
+            - {{ default "/etc/nats-kafka/nats-kafka.conf" .Values.natskafka.configPath }}
+          {{- if .Values.additionalArguments }}
+          args:
+            {{- with .Values.additionalArguments }}
+            {{- range . }}
+            - {{ . | quote }}
+            {{- end }}
+            {{- end }}
+          {{- end}}
           {{ if .Values.natskafka.monitoring.httpPort }}
           livenessProbe:
             httpGet:
@@ -53,3 +70,6 @@ spec:
           secret:
             secretName: {{ .Values.natskafka.monitoring.tls.secret }}
         {{ end }}
+        {{- if .Values.natskafka.additionalVolumes }}
+          {{- toYaml .Values.deployment.additionalVolumes | nindent 8 }}
+        {{- end }}
