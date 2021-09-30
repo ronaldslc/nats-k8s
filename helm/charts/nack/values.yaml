@@ -42,6 +42,7 @@ namespaced: false
 nameOverride: ""
 imagePullSecrets: []
 serviceAccountName: ""
+createServiceAccount: true
 
 podAnnotations: {}
 
